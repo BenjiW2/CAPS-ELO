@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "./supabase";
 
@@ -28,7 +28,7 @@ function useSession() {
   return { loading, uid };
 }
 
-function RequireAuth(props: { uid: string | null; loading: boolean; children: React.ReactNode }) {
+function RequireAuth(props: { uid: string | null; loading: boolean; children: ReactNode }) {
   const nav = useNavigate();
   const loc = useLocation();
 
