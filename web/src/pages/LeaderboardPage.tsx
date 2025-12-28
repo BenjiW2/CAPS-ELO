@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "../supabase";
 import { Link } from "react-router-dom";
 
-type ProfileRow = {
+type PlayerRow = {
   id: string;
   display_name: string;
   rating: number;
@@ -12,7 +12,7 @@ type ProfileRow = {
 };
 
 export default function LeaderboardPage() {
-  const [rows, setRows] = useState<ProfileRow[]>([]);
+  const [rows, setRows] = useState<PlayerRow[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -21,14 +21,11 @@ export default function LeaderboardPage() {
 
   async function load() {
     setError(null);
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("id, display_name, rating, games_played, wins, losses")
-      .order("rating", { ascending: false })
-      .limit(200);
 
+    const { data, error } = await supabase.rpc("get_leaderboard");
     if (error) return setError(error.message);
-    setRows((data ?? []) as ProfileRow[]);
+
+    setRows((data ?? []) as PlayerRow[]);
   }
 
   return (
@@ -42,7 +39,6 @@ export default function LeaderboardPage() {
 
       {error && <div className="error">{error}</div>}
 
-      {/* Mobile-first: card list */}
       <div className="list" style={{ marginTop: 10 }}>
         {rows.map((r, idx) => (
           <div className="item" key={r.id}>

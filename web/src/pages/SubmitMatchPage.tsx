@@ -1,10 +1,20 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../supabase";
 
-type ProfileRow = { id: string; display_name: string };
+type PlayerRow = { id: string; display_name: string; rating: number };
+
+async function getMyPlayerId(authUid: string) {
+  const { data, error } = await supabase
+    .from("players")
+    .select("id")
+    .eq("auth_user_id", authUid)
+    .single();
+  if (error) throw new Error(error.message);
+  return (data as any).id as string;
+}
 
 export default function SubmitMatchPage() {
-  const [profiles, setProfiles] = useState<ProfileRow[]>([]);
+  const [players, setPlayers] = useState<PlayerRow[]>([]);
   const [team1p1, setTeam1p1] = useState("");
   const [team1p2, setTeam1p2] = useState("");
   const [team2p1, setTeam2p1] = useState("");
@@ -16,20 +26,26 @@ export default function SubmitMatchPage() {
   const [msg, setMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    loadProfiles();
+    loadPlayers();
   }, []);
 
-  async function loadProfiles() {
+  async function loadPlayers() {
     setError(null);
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("id, display_name")
-      .order("display_name", { ascending: true })
-      .limit(500);
-
+    const { data, error } = await supabase.rpc("get_leaderboard");
     if (error) return setError(error.message);
-    setProfiles((data ?? []) as ProfileRow[]);
+
+    const rows = (data ?? []) as any[];
+    const sorted = rows
+      .map((r) => ({ id: r.id, display_name: r.display_name, rating: r.rating }))
+      .sort((a, b) => a.display_name.localeCompare(b.display_name));
+
+    setPlayers(sorted);
   }
+
+  const allSelected = useMemo(
+    () => [team1p1, team1p2, team2p1, team2p2].filter(Boolean),
+    [team1p1, team1p2, team2p1, team2p2]
+  );
 
   function validateDistinct(ids: string[]) {
     return new Set(ids).size === ids.length;
@@ -39,13 +55,19 @@ export default function SubmitMatchPage() {
     setError(null);
     setMsg(null);
 
-    const { data: sessionData } = await supabase.auth.getSession();
-    const uid = sessionData.session?.user.id;
-    if (!uid) return setError("You must be logged in.");
+    const { data: s } = await supabase.auth.getSession();
+    const authUid = s.session?.user.id;
+    if (!authUid) return setError("Not logged in.");
 
-    const ids = [team1p1, team1p2, team2p1, team2p2];
-    if (ids.some((x) => !x)) return setError("Select all 4 players.");
-    if (!validateDistinct(ids)) return setError("All 4 players must be distinct.");
+    if (allSelected.length !== 4) return setError("Select all 4 players.");
+    if (!validateDistinct(allSelected)) return setError("All 4 players must be distinct.");
+
+    let submittedBy: string;
+    try {
+      submittedBy = await getMyPlayerId(authUid);
+    } catch (e: any) {
+      return setError(`Account not linked to a player: ${e.message}`);
+    }
 
     const { error } = await supabase.from("matches").insert({
       team1_p1: team1p1,
@@ -53,7 +75,7 @@ export default function SubmitMatchPage() {
       team2_p1: team2p1,
       team2_p2: team2p2,
       winner,
-      submitted_by: uid,
+      submitted_by: submittedBy,
       note: note.trim() ? note.trim() : null,
       status: "pending_confirm",
     });
@@ -70,7 +92,7 @@ export default function SubmitMatchPage() {
         <label>{props.label}</label>
         <select className="input" value={props.value} onChange={(e) => props.onChange(e.target.value)}>
           <option value="">Select…</option>
-          {profiles.map((p) => (
+          {players.map((p) => (
             <option key={p.id} value={p.id}>
               {p.display_name}
             </option>
@@ -84,7 +106,7 @@ export default function SubmitMatchPage() {
     <div className="card">
       <div className="h1">Submit match</div>
       <div className="muted" style={{ fontSize: 13 }}>
-        Enter a 2v2. An opponent must confirm before ratings update.
+        2v2. Opponent must confirm before Elo updates.
       </div>
 
       <hr className="sep" />
@@ -94,25 +116,19 @@ export default function SubmitMatchPage() {
         <PlayerSelect label="Player 1" value={team1p1} onChange={setTeam1p1} />
         <PlayerSelect label="Player 2" value={team1p2} onChange={setTeam1p2} />
 
-        <div className="h2" style={{ marginTop: 6 }}>Team 2</div>
+        <div className="h2" style={{ marginTop: 6 }}>
+          Team 2
+        </div>
         <PlayerSelect label="Player 1" value={team2p1} onChange={setTeam2p1} />
         <PlayerSelect label="Player 2" value={team2p2} onChange={setTeam2p2} />
 
         <div className="field">
           <label>Winner</label>
           <div className="row">
-            <button
-              className={`button ${winner === 1 ? "" : "secondary"}`}
-              onClick={() => setWinner(1)}
-              type="button"
-            >
+            <button className={`button ${winner === 1 ? "" : "secondary"}`} onClick={() => setWinner(1)} type="button">
               Team 1 won
             </button>
-            <button
-              className={`button ${winner === 2 ? "" : "secondary"}`}
-              onClick={() => setWinner(2)}
-              type="button"
-            >
+            <button className={`button ${winner === 2 ? "" : "secondary"}`} onClick={() => setWinner(2)} type="button">
               Team 2 won
             </button>
           </div>

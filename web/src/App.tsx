@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Link, NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { Link, NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { supabase } from "./supabase";
 
 import LoginPage from "./pages/LoginPage";
@@ -29,17 +29,9 @@ function useSession() {
 }
 
 function RequireAuth(props: { uid: string | null; loading: boolean; children: ReactNode }) {
-  const nav = useNavigate();
   const loc = useLocation();
-
-  useEffect(() => {
-    if (!props.loading && !props.uid && loc.pathname !== "/login") {
-      nav("/login");
-    }
-  }, [props.loading, props.uid, nav, loc.pathname]);
-
   if (props.loading) return <div className="card">Loading…</div>;
-  if (!props.uid && loc.pathname !== "/login") return null;
+  if (!props.uid) return <Navigate to="/login" replace state={{ from: loc.pathname }} />;
   return <>{props.children}</>;
 }
 
@@ -59,7 +51,7 @@ export default function App() {
           <div>
             <div className="h1">Caps ELO</div>
             <div className="muted" style={{ fontSize: 12 }}>
-              2v2 match logging + ratings
+              Public leaderboard · Name + password login
             </div>
           </div>
 
@@ -80,15 +72,30 @@ export default function App() {
         </div>
       </div>
 
-      <RequireAuth uid={uid} loading={loading}>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/" element={<LeaderboardPage />} />
-          <Route path="/submit" element={<SubmitMatchPage />} />
-          <Route path="/pending" element={<PendingPage />} />
-          <Route path="/player/:id" element={<PlayerPage />} />
-        </Routes>
-      </RequireAuth>
+      <Routes>
+        {/* Public */}
+        <Route path="/" element={<LeaderboardPage />} />
+        <Route path="/player/:id" element={<PlayerPage />} />
+        <Route path="/login" element={<LoginPage />} />
+
+        {/* Protected */}
+        <Route
+          path="/submit"
+          element={
+            <RequireAuth uid={uid} loading={loading}>
+              <SubmitMatchPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/pending"
+          element={
+            <RequireAuth uid={uid} loading={loading}>
+              <PendingPage />
+            </RequireAuth>
+          }
+        />
+      </Routes>
 
       {/* Mobile bottom nav */}
       <div className="bottomNav">
@@ -97,10 +104,12 @@ export default function App() {
             <strong>Board</strong>
             <span className="muted">Ratings</span>
           </NavLink>
+
           <NavLink to="/submit" className={({ isActive }) => `navBtn ${isActive ? "active" : ""}`}>
             <strong>Submit</strong>
             <span className="muted">Match</span>
           </NavLink>
+
           <NavLink to="/pending" className={({ isActive }) => `navBtn ${isActive ? "active" : ""}`}>
             <strong>Pending</strong>
             <span className="muted">Confirm</span>
@@ -118,7 +127,7 @@ export default function App() {
           ) : (
             <NavLink to="/login" className={({ isActive }) => `navBtn ${isActive ? "active" : ""}`}>
               <strong>Login</strong>
-              <span className="muted">Sign in</span>
+              <span className="muted">Claim</span>
             </NavLink>
           )}
         </div>

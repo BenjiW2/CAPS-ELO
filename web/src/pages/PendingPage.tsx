@@ -10,15 +10,23 @@ type MatchRow = {
   team2_p2: string;
   winner: 1 | 2;
   note: string | null;
-  status: string;
-  submitted_by: string;
 };
 
-type ProfileMap = Record<string, string>;
+type PlayerMap = Record<string, string>;
+
+async function getMyPlayerId(authUid: string) {
+  const { data, error } = await supabase
+    .from("players")
+    .select("id")
+    .eq("auth_user_id", authUid)
+    .single();
+  if (error) throw new Error(error.message);
+  return (data as any).id as string;
+}
 
 export default function PendingPage() {
   const [matches, setMatches] = useState<MatchRow[]>([]);
-  const [names, setNames] = useState<ProfileMap>({});
+  const [names, setNames] = useState<PlayerMap>({});
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -30,39 +38,35 @@ export default function PendingPage() {
     setError(null);
     setMsg(null);
 
-    const { data: mData, error } = await supabase
+    const { data, error } = await supabase
       .from("matches")
-      .select("*")
+      .select("id, created_at, team1_p1, team1_p2, team2_p1, team2_p2, winner, note")
       .eq("status", "pending_confirm")
       .order("created_at", { ascending: false })
       .limit(50);
 
     if (error) return setError(error.message);
 
-    const rows = (mData ?? []) as MatchRow[];
+    const rows = (data ?? []) as MatchRow[];
     setMatches(rows);
 
-    const ids = new Set<string>();
-    rows.forEach((m) => {
-      ids.add(m.team1_p1);
-      ids.add(m.team1_p2);
-      ids.add(m.team2_p1);
-      ids.add(m.team2_p2);
-    });
+    const ids = Array.from(
+      new Set(rows.flatMap((m) => [m.team1_p1, m.team1_p2, m.team2_p1, m.team2_p2]))
+    );
 
-    if (ids.size === 0) {
+    if (ids.length === 0) {
       setNames({});
       return;
     }
 
     const { data: pData, error: pErr } = await supabase
-      .from("profiles")
+      .from("players")
       .select("id, display_name")
-      .in("id", Array.from(ids));
+      .in("id", ids);
 
     if (pErr) return setError(pErr.message);
 
-    const map: ProfileMap = {};
+    const map: PlayerMap = {};
     (pData ?? []).forEach((p: any) => (map[p.id] = p.display_name));
     setNames(map);
   }
@@ -76,12 +80,19 @@ export default function PendingPage() {
     setMsg(null);
 
     const { data: s } = await supabase.auth.getSession();
-    const uid = s.session?.user.id;
-    if (!uid) return setError("You must be logged in.");
+    const authUid = s.session?.user.id;
+    if (!authUid) return setError("Not logged in.");
+
+    let myPid: string;
+    try {
+      myPid = await getMyPlayerId(authUid);
+    } catch (e: any) {
+      return setError(`Account not linked to a player: ${e.message}`);
+    }
 
     const { error } = await supabase
       .from("matches")
-      .update({ status, confirmed_by: uid })
+      .update({ status, confirmed_by: myPid })
       .eq("id", matchId);
 
     if (error) return setError(error.message);
@@ -96,7 +107,7 @@ export default function PendingPage() {
         <div>
           <div className="h1">Pending</div>
           <div className="muted" style={{ fontSize: 13 }}>
-            Only an opponent of the submitter can confirm/reject.
+            You can only confirm/reject matches where you’re on the opposing team (enforced by RLS).
           </div>
         </div>
         <button className="button secondary" style={{ width: "auto" }} onClick={load}>
