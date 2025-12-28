@@ -1,0 +1,155 @@
+:root {
+    color-scheme: dark;
+    --bg: #0b0b0c;
+    --panel: #141418;
+    --panel2: #101014;
+    --border: #242436;
+    --text: #f2f2f6;
+    --muted: #b7b7c8;
+    --link: #c7d2fe;
+    --danger: #fca5a5;
+    --ok: #86efac;
+  
+    --radius: 14px;
+    --pad: 14px;
+  }
+  
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+  }
+  
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  
+  .container {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 14px;
+    padding-bottom: 88px; /* room for bottom nav on mobile */
+  }
+  
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: var(--pad);
+  }
+  
+  .h1 { font-size: 18px; font-weight: 800; margin: 0 0 10px 0; }
+  .h2 { font-size: 16px; font-weight: 700; margin: 14px 0 8px 0; }
+  
+  .muted { color: var(--muted); }
+  .error { color: var(--danger); margin-top: 10px; }
+  .success { color: var(--ok); margin-top: 10px; }
+  
+  .row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .col { display: flex; flex-direction: column; gap: 10px; }
+  
+  .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .input, select, textarea {
+    width: 100%;
+    padding: 12px 12px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--panel2);
+    color: var(--text);
+    outline: none;
+  }
+  textarea { min-height: 88px; resize: vertical; }
+  
+  .button {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: #1b1b26;
+    color: var(--text);
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .button:hover { background: #232334; }
+  .button.secondary { background: transparent; }
+  .button.danger { border-color: #3a1f26; background: #1b0f13; }
+  .button.danger:hover { background: #251016; }
+  
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: #12121a;
+    font-size: 12px;
+  }
+  
+  .kv {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .kv .card { padding: 12px; }
+  .big { font-size: 28px; font-weight: 800; }
+  
+  .list { display: grid; gap: 10px; }
+  .item {
+    background: #121219;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px;
+  }
+  
+  hr.sep { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+  
+  .tableWrap { overflow-x: auto; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 640px; /* helps desktop/tablet; mobile will scroll horizontally */
+  }
+  th, td {
+    padding: 10px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+  }
+  
+  /* Bottom nav (mobile-first) */
+  .bottomNav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(12,12,16,0.92);
+    border-top: 1px solid var(--border);
+    backdrop-filter: blur(10px);
+  }
+  .bottomNavInner {
+    max-width: 980px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .navBtn {
+    padding: 10px 8px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .navBtn strong { display: block; color: var(--text); font-size: 12px; }
+  .navBtn.active { background: #14141f; }
+  
+  /* Desktop adjustments */
+  @media (min-width: 900px) {
+    .container { padding-bottom: 18px; }
+    .bottomNav { position: static; border: none; background: transparent; backdrop-filter: none; }
+    .bottomNavInner { display: flex; gap: 12px; padding: 0; justify-content: flex-end; }
+    .navBtn { padding: 0; font-size: 14px; color: var(--link); }
+    .navBtn strong { display: inline; font-size: 14px; }
+    .navBtn.active { background: transparent; text-decoration: underline; }
+  }
+  
