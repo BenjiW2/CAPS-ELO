@@ -204,7 +204,7 @@ export default function SubmitMatchPage() {
               Team 1 won
             </button>
             <button className={`button ${winner === 2 ? "" : "secondary"}`} onClick={() => setWinner(2)} type="button">
-              Team 2 won
+              Team 2 won wow
             </button>
           </div>
         </div>
