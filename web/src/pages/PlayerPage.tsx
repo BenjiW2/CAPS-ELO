@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "../supabase";
 
-type Profile = {
+type Player = {
   id: string;
   display_name: string;
   rating: number;
@@ -21,7 +21,7 @@ type RatingEvent = {
 
 export default function PlayerPage() {
   const { id } = useParams();
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [player, setPlayer] = useState<Player | null>(null);
   const [events, setEvents] = useState<RatingEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,15 +32,17 @@ export default function PlayerPage() {
 
   async function load(pid: string) {
     setError(null);
+    setPlayer(null);
 
+    // Fetch the player by player id from the route
     const { data: pData, error: pErr } = await supabase
-      .from("profiles")
+      .from("players")
       .select("id, display_name, rating, games_played, wins, losses")
       .eq("id", pid)
       .single();
 
     if (pErr) return setError(pErr.message);
-    setProfile(pData as Profile);
+    setPlayer(pData as Player);
 
     const { data: eData, error: eErr } = await supabase
       .from("rating_events")
@@ -57,23 +59,25 @@ export default function PlayerPage() {
     <div className="card">
       {error && <div className="error">{error}</div>}
 
-      {!profile ? (
+      {!player ? (
         <div className="muted">Loading…</div>
       ) : (
         <>
-          <div className="h1">{profile.display_name}</div>
+          <div className="h1">{player.display_name}</div>
 
           <div className="kv" style={{ marginTop: 10 }}>
             <div className="card">
               <div className="muted" style={{ fontSize: 12 }}>Rating</div>
-              <div className="big">{profile.rating}</div>
+              <div className="big">{player.rating}</div>
             </div>
             <div className="card">
               <div className="muted" style={{ fontSize: 12 }}>Record</div>
               <div style={{ fontSize: 18, fontWeight: 800 }}>
-                {profile.wins}–{profile.losses}
+                {player.wins}–{player.losses}
               </div>
-              <div className="muted" style={{ fontSize: 12 }}>GP {profile.games_played}</div>
+              <div className="muted" style={{ fontSize: 12 }}>
+                GP {player.games_played}
+              </div>
             </div>
           </div>
 
